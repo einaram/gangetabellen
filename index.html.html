@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gangetabellen</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+        }
+        .container, .start-screen {
+            margin-top: 50px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 300px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        h1 {
+            color: #333;
+        }
+        .question {
+            font-size: 24px;
+            margin: 20px 0;
+        }
+        input {
+            padding: 10px;
+            font-size: 18px;
+            text-align: center;
+            width: 80px;
+            margin-bottom: 10px;
+        }
+        .btn {
+            padding: 10px 15px;
+            background: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+        .btn:hover {
+            background: #218838;
+        }
+        .feedback {
+            font-size: 18px;
+            margin-top: 10px;
+        }
+        .chart-container {
+            width: 80%;
+            max-width: 500px;
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="start-screen" id="startScreen">
+        <h1>Gangetabellen</h1>
+        <label for="range">Velg gangetabeller (1 - X):</label>
+        <input type="number" id="range" min="2" max="12" value="6">
+        <label for="timeLimit">Velg tid (sekunder):</label>
+        <input type="number" id="timeLimit" min="10" max="300" value="120">
+        <button class="btn" onclick="startGame()">Start</button>
+        <button class="btn" onclick="showGraph()">Vis gamle resultater</button>
+        <div id="summary" style="margin-top: 10px;"></div>
+    </div>
+
+    <div class="container" id="gameScreen" style="display:none;">
+        <h1>Gangetabellen</h1>
+        <div class="question" id="question"></div>
+        <input type="number" id="answer" placeholder="?">
+        <button class="btn" onclick="checkAnswer()">Sjekk</button>
+        <div class="feedback" id="feedback"></div>
+        <div class="score">Riktige svar: <span id="score">0</span></div>
+        <div class="timer">Tid igjen: <span id="time">120</span> sek</div>
+    </div>
+
+    <div class="chart-container" id="chartContainer">
+        <canvas id="scoreChart"></canvas>
+    </div>
+
+    <script>
+        let num1, num2, correctAnswer;
+        let score = 0;
+        let timeLeft;
+        let timer;
+        let timerStarted = false;
+        let maxNumber;
+        let scores = JSON.parse(localStorage.getItem('scores')) || [];
+        
+        function startGame() {
+            maxNumber = parseInt(document.getElementById('range').value);
+            timeLeft = parseInt(document.getElementById('timeLimit').value);
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            score = 0;
+            document.getElementById('score').textContent = score;
+            document.getElementById('time').textContent = timeLeft;
+            timerStarted = false;
+            newQuestion();
+        }
+
+        function newQuestion() {
+            num1 = Math.floor(Math.random() * maxNumber) + 1;
+            num2 = Math.floor(Math.random() * maxNumber) + 1;
+            correctAnswer = num1 * num2;
+            document.getElementById('question').textContent = `${num1} × ${num2} = ?`;
+            document.getElementById('feedback').textContent = "";
+            document.getElementById('answer').value = "";
+            document.getElementById('answer').focus();
+        }
+
+        function checkAnswer() {
+            if (!timerStarted) {
+                startTimer();
+                timerStarted = true;
+            }
+            let userAnswer = document.getElementById('answer').value;
+            if (userAnswer == correctAnswer) {
+                document.getElementById('feedback').textContent = "✅ Riktig! Bra jobbet!";
+                document.getElementById('feedback').style.color = "green";
+                score++;
+                document.getElementById('score').textContent = score;
+                newQuestion();
+            } else {
+                document.getElementById('feedback').textContent = "❌ Prøv igjen!";
+                document.getElementById('feedback').style.color = "red";
+            }
+        }
+
+        document.getElementById('answer').addEventListener("keyup", function(event) {
+            if (event.key === "Enter") {
+                checkAnswer();
+            }
+        });
+
+        function startTimer() {
+            timer = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    document.getElementById('time').textContent = timeLeft;
+                } else {
+                    clearInterval(timer);
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            saveScore(score);
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('startScreen').style.display = 'block';
+            document.getElementById('summary').innerHTML = `<h3>Runde ferdig!</h3><p>Du fikk ${score} riktige svar.</p>`;
+        }
+
+        function saveScore(score) {
+            scores.push(score);
+            if (scores.length > 10) scores.shift(); 
+            localStorage.setItem('scores', JSON.stringify(scores));
+        }
+
+        function renderChart() {
+            const ctx = document.getElementById('scoreChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: scores.length}, (_, i) => `Runde ${i + 1}`),
+                    datasets: [{
+                        label: 'Poengsum',
+                        data: scores,
+                        borderColor: 'blue',
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {beginAtZero: true}
+                    }
+                }
+            });
+        }
+
+        function showGraph() {
+            document.getElementById('chartContainer').style.display = 'block';
+            renderChart();
+        }
+    </script>
+</body>
+</html>
