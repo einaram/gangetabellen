@@ -161,6 +161,9 @@
             document.getElementById('gameScreen').style.display = 'none';
             document.getElementById('startScreen').style.display = 'block';
             document.getElementById('summary').innerHTML = `<h3>Runde ferdig!</h3><p>Du fikk ${score} riktige svar.</p>`;
+            if (document.getElementById('chartContainer').style.display === 'block') {
+                renderChart();
+            }
         }
 
         function saveScore(score) {
@@ -170,8 +173,12 @@
         }
 
         function renderChart() {
-            const ctx = document.getElementById('scoreChart').getContext('2d');
-            new Chart(ctx, {
+            const ctx = document.getElementById('scoreChart');
+            // Destroy existing chart if it exists
+            if (window.scoreChart instanceof Chart) {
+                window.scoreChart.destroy();
+            }
+            window.scoreChart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: Array.from({length: scores.length}, (_, i) => `Runde ${i + 1}`),
