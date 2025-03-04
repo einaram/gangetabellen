@@ -111,7 +111,7 @@
         }
 
         function newQuestion() {
-            num1 = Math.floor(Math.random() * maxNumber) + 1;
+            num1 = Math.floor(Math.random() * 10) + 1;
             num2 = Math.floor(Math.random() * maxNumber) + 1;
             correctAnswer = num1 * num2;
             document.getElementById('question').textContent = `${num1} × ${num2} = ?`;
