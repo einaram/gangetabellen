@@ -77,14 +77,14 @@
 </head>
 <body>
     <div class="start-screen" id="startScreen">
-        <h1>Gangetabellen</h1>
+        <h1 class="app-title">Gangetabellen</h1>
         <div class="ops" id="ops">
             <button class="op-btn" data-op="+">+</button>
             <button class="op-btn" data-op="-">−</button>
             <button class="op-btn selected" data-op="*">×</button>
             <button class="op-btn" data-op="/">÷</button>
         </div>
-        <label for="range">Velg gangetabeller (1 - X):</label>
+        <label for="range" id="rangeLabel">Velg gangetabeller (1 - X):</label>
         <input type="number" id="range" min="2" max="12" value="6">
         <label for="timeLimit">Velg tid (sekunder):</label>
         <input type="number" id="timeLimit" min="10" max="300" value="120">
@@ -94,7 +94,7 @@
     </div>
 
     <div class="container" id="gameScreen" style="display:none;">
-        <h1>Gangetabellen</h1>
+        <h1 class="app-title">Gangetabellen</h1>
         <div class="question" id="question"></div>
         <input type="number" id="answer" placeholder="?">
         <button class="btn" onclick="checkAnswer()">Sjekk</button>
@@ -114,6 +114,13 @@
         let timer;
         let timerStarted = false;
         let maxNumber;
+        const TITLES = {'+': 'Addisjon', '-': 'Subtraksjon', '*': 'Gangetabellen', '/': 'Divisjon'};
+        const RANGE_LABELS = {
+            '+': 'Velg addisjonstall (1 - X):',
+            '-': 'Velg subtraksjonstall (1 - X):',
+            '*': 'Velg gangetabeller (1 - X):',
+            '/': 'Velg divisjonstall (1 - X):'
+        };
         const SYMBOLS = {'+': '+', '-': '−', '*': '×', '/': '÷'};
         let operation = localStorage.getItem('operation') || '*';
         if (!SYMBOLS[operation]) operation = '*';
@@ -133,6 +140,9 @@
             operation = op;
             localStorage.setItem('operation', op);
             scores = loadScores();
+            document.title = TITLES[op];
+            document.querySelectorAll('.app-title').forEach(h => h.textContent = TITLES[op]);
+            document.getElementById('rangeLabel').textContent = RANGE_LABELS[op];
             document.querySelectorAll('.op-btn').forEach(b =>
                 b.classList.toggle('selected', b.dataset.op === op));
             if (document.getElementById('chartContainer').style.display === 'block') {
