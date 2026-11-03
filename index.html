@@ -47,6 +47,18 @@
         .btn:hover {
             background: #218838;
         }
+        .ops { margin: 10px 0; }
+        .op-btn {
+            font-size: 24px;
+            width: 48px;
+            height: 48px;
+            margin: 0 3px;
+            border: 2px solid #28a745;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .op-btn.selected { background: #28a745; color: white; }
         .feedback {
             font-size: 18px;
             margin-top: 10px;
@@ -66,6 +78,12 @@
 <body>
     <div class="start-screen" id="startScreen">
         <h1>Gangetabellen</h1>
+        <div class="ops" id="ops">
+            <button class="op-btn" data-op="+">+</button>
+            <button class="op-btn" data-op="-">−</button>
+            <button class="op-btn selected" data-op="*">×</button>
+            <button class="op-btn" data-op="/">÷</button>
+        </div>
         <label for="range">Velg gangetabeller (1 - X):</label>
         <input type="number" id="range" min="2" max="12" value="6">
         <label for="timeLimit">Velg tid (sekunder):</label>
@@ -96,7 +114,34 @@
         let timer;
         let timerStarted = false;
         let maxNumber;
-        let scores = JSON.parse(localStorage.getItem('scores')) || [];
+        const SYMBOLS = {'+': '+', '-': '−', '*': '×', '/': '÷'};
+        let operation = localStorage.getItem('operation') || '*';
+        if (!SYMBOLS[operation]) operation = '*';
+
+        // Old data was multiplication only
+        if (localStorage.getItem('scores') && !localStorage.getItem('scores_*')) {
+            localStorage.setItem('scores_*', localStorage.getItem('scores'));
+        }
+        localStorage.removeItem('scores');
+
+        function loadScores() {
+            return JSON.parse(localStorage.getItem('scores_' + operation)) || [];
+        }
+        let scores = loadScores();
+
+        function selectOp(op) {
+            operation = op;
+            localStorage.setItem('operation', op);
+            scores = loadScores();
+            document.querySelectorAll('.op-btn').forEach(b =>
+                b.classList.toggle('selected', b.dataset.op === op));
+            if (document.getElementById('chartContainer').style.display === 'block') {
+                renderChart();
+            }
+        }
+        document.querySelectorAll('.op-btn').forEach(b =>
+            b.addEventListener('click', () => selectOp(b.dataset.op)));
+        selectOp(operation);
         
         function startGame() {
             maxNumber = parseInt(document.getElementById('range').value);
@@ -113,8 +158,19 @@
         function newQuestion() {
             num1 = Math.floor(Math.random() * 10) + 1;
             num2 = Math.floor(Math.random() * maxNumber) + 1;
-            correctAnswer = num1 * num2;
-            document.getElementById('question').textContent = `${num1} × ${num2} = ?`;
+            let a = num1, b = num2;
+            if (operation === '+') {
+                correctAnswer = a + b;
+            } else if (operation === '-') {
+                a = num1 + num2;
+                correctAnswer = num1;
+            } else if (operation === '*') {
+                correctAnswer = a * b;
+            } else {
+                a = num1 * num2;
+                correctAnswer = num1;
+            }
+            document.getElementById('question').textContent = `${a} ${SYMBOLS[operation]} ${b} = ?`;
             document.getElementById('feedback').textContent = "";
             document.getElementById('answer').value = "";
             document.getElementById('answer').focus();
@@ -169,7 +225,7 @@
         function saveScore(score) {
             scores.push(score);
             if (scores.length > 10) scores.shift(); 
-            localStorage.setItem('scores', JSON.stringify(scores));
+            localStorage.setItem('scores_' + operation, JSON.stringify(scores));
         }
 
         function renderChart() {
@@ -183,7 +239,7 @@
                 data: {
                     labels: Array.from({length: scores.length}, (_, i) => `Runde ${i + 1}`),
                     datasets: [{
-                        label: 'Poengsum',
+                        label: 'Poengsum (' + SYMBOLS[operation] + ')',
                         data: scores,
                         borderColor: 'blue',
                         fill: false
